@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -87,6 +88,18 @@ func (p UserPermissions) Allowed(r *http.Request, fileExists func(string) bool) 
 
 func (p *UserPermissions) Validate() error {
 	var err error
+
+	if strings.HasPrefix(p.Directory, "{env}") {
+		env := strings.TrimPrefix(p.Directory, "{env}")
+		if env == "" {
+			return fmt.Errorf("invalid directory %q: directory environment variable not set", p.Directory)
+		}
+
+		p.Directory = os.Getenv(env)
+		if p.Directory == "" {
+			return fmt.Errorf("invalid directory %q: directory environment variable is empty", p.Directory)
+		}
+	}
 
 	p.Directory, err = filepath.Abs(p.Directory)
 	if err != nil {
